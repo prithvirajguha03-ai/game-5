@@ -1,11 +1,151 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memory Game</title>
+  <link href="./src/output.css" rel="stylesheet">
 </head>
-<body>
-    
+<body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900">
+
+  <div class="flex flex-col items-center gap-5 p-6 w-full max-w-xl mx-auto">
+    <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-wide">Memory Game</h1>
+
+    <div class="flex items-center gap-6 text-white/80 text-sm sm:text-base">
+      <span>Moves: <strong id="moves" class="text-white">0</strong></span>
+      <span>Pairs: <strong id="pairs" class="text-white">0</strong>/8</span>
+    </div>
+
+    <div id="board" class="grid grid-cols-4 gap-2.5 sm:gap-3 w-full">
+    </div>
+
+    <button id="restart" class="mt-1 px-6 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 active:bg-purple-700 text-white font-semibold text-sm sm:text-base transition-colors duration-150 cursor-pointer">
+      Restart
+    </button>
+  </div>
+
+  <div id="overlay" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl p-8 sm:p-10 text-center flex flex-col items-center gap-5 shadow-2xl max-w-sm mx-4">
+      <div class="text-5xl">🎉</div>
+      <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">You Win!</h2>
+      <p class="text-gray-500 text-sm sm:text-base">Completed in <strong id="final-moves" class="text-gray-700">0</strong> moves</p>
+      <button id="play-again" class="px-6 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 active:bg-purple-700 text-white font-semibold text-sm sm:text-base transition-colors duration-150 cursor-pointer">
+        Play Again
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const SYMBOLS = ['🍎','🍇','🍊','🍋','🫐','🍑','🍒','🥝'];
+    const board = document.getElementById('board');
+    const movesEl = document.getElementById('moves');
+    const pairsEl = document.getElementById('pairs');
+    const overlay = document.getElementById('overlay');
+    const finalMovesEl = document.getElementById('final-moves');
+    const restartBtn = document.getElementById('restart');
+    const playAgainBtn = document.getElementById('play-again');
+
+    let cards = [];
+    let flipped = [];
+    let matched = new Set();
+    let moves = 0;
+    let pairsFound = 0;
+    let locked = false;
+    let generation = 0;
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function createBoard() {
+      board.innerHTML = '';
+      const deck = shuffle([...SYMBOLS, ...SYMBOLS]);
+      cards = deck;
+      flipped = [];
+      matched = new Set();
+      moves = 0;
+      pairsFound = 0;
+      locked = false;
+      generation++;
+      movesEl.textContent = '0';
+      pairsEl.textContent = '0';
+      overlay.classList.add('hidden');
+
+      deck.forEach((symbol, index) => {
+        const card = document.createElement('div');
+        card.className = 'card-container aspect-square cursor-pointer';
+        card.dataset.index = index;
+        card.dataset.symbol = symbol;
+
+        card.innerHTML = `
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <span class="text-2xl sm:text-3xl select-none">?</span>
+            </div>
+            <div class="card-face card-back">
+              <span class="text-2xl sm:text-4xl select-none">${symbol}</span>
+            </div>
+          </div>
+        `;
+
+        card.addEventListener('click', () => handleClick(index));
+        board.appendChild(card);
+      });
+    }
+
+    function handleClick(index) {
+      if (locked) return;
+      if (matched.has(index)) return;
+      if (flipped.includes(index)) return;
+      if (flipped.length >= 2) return;
+
+      const cardEl = board.children[index];
+      cardEl.classList.add('flipped');
+      flipped.push(index);
+
+      if (flipped.length === 2) {
+        moves++;
+        movesEl.textContent = moves;
+        locked = true;
+
+        const [i, j] = flipped;
+        if (cards[i] === cards[j]) {
+          matched.add(i);
+          matched.add(j);
+          pairsFound++;
+          pairsEl.textContent = pairsFound;
+          flipped = [];
+          locked = false;
+
+          if (pairsFound === SYMBOLS.length) {
+            const g = generation;
+            setTimeout(() => {
+              if (g !== generation) return;
+              finalMovesEl.textContent = moves;
+              overlay.classList.remove('hidden');
+            }, 400);
+          }
+        } else {
+          const g = generation;
+          setTimeout(() => {
+            if (g !== generation) return;
+            board.children[i].classList.remove('flipped');
+            board.children[j].classList.remove('flipped');
+            flipped = [];
+            locked = false;
+          }, 700);
+        }
+      }
+    }
+
+    restartBtn.addEventListener('click', createBoard);
+    playAgainBtn.addEventListener('click', createBoard);
+
+    createBoard();
+  </script>
 </body>
 </html>
