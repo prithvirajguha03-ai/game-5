@@ -13,37 +13,69 @@
 
     <div class="flex items-center gap-6 text-white/80 text-sm sm:text-base">
       <span>Moves: <strong id="moves" class="text-white">0</strong></span>
-      <span>Pairs: <strong id="pairs" class="text-white">0</strong>/8</span>
+      <span>Pairs: <strong id="pairs" class="text-white">0</strong>/<span id="total-pairs">8</span></span>
+      <span>Level: <strong id="level-label" class="text-white">Normal</strong></span>
     </div>
 
     <div id="board" class="grid grid-cols-4 gap-2.5 sm:gap-3 w-full">
     </div>
 
-    <button id="restart" class="mt-1 px-6 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 active:bg-purple-700 text-white font-semibold text-sm sm:text-base transition-colors duration-150 cursor-pointer">
-      Restart
-    </button>
-  </div>
-
-  <div id="overlay" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-    <div class="bg-white rounded-2xl p-8 sm:p-10 text-center flex flex-col items-center gap-5 shadow-2xl max-w-sm mx-4">
-      <div class="text-5xl">🎉</div>
-      <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">You Win!</h2>
-      <p class="text-gray-500 text-sm sm:text-base">Completed in <strong id="final-moves" class="text-gray-700">0</strong> moves</p>
-      <button id="play-again" class="px-6 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 active:bg-purple-700 text-white font-semibold text-sm sm:text-base transition-colors duration-150 cursor-pointer">
-        Play Again
+    <div class="flex flex-wrap items-center justify-center gap-3 mt-1">
+      <button id="restart" class="px-6 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 active:bg-purple-700 text-white font-semibold text-sm sm:text-base transition-colors duration-150 cursor-pointer focus-visible:ring-4 focus-visible:ring-purple-400/60 focus-visible:outline-none">
+        Restart
+      </button>
+      <button id="change-difficulty" class="px-6 py-2.5 rounded-lg bg-white/10 hover:bg-white/20 active:bg-white/5 text-white font-semibold text-sm sm:text-base border border-white/20 transition-colors duration-150 cursor-pointer focus-visible:ring-4 focus-visible:ring-white/40 focus-visible:outline-none">
+        Change Difficulty
       </button>
     </div>
   </div>
 
+  <div id="overlay" class="hidden fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl p-8 sm:p-10 text-center flex flex-col items-center gap-5 shadow-2xl max-w-sm mx-4">
+      <div class="text-5xl">🎉</div>
+      <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">You Win!</h2>
+      <p class="text-gray-500 text-sm sm:text-base">Completed in <strong id="final-moves" class="text-gray-700">0</strong> moves <span class="text-gray-400">on <strong id="final-level" class="text-gray-500">Normal</strong></span></p>
+      <button id="play-again" class="px-6 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 active:bg-purple-700 text-white font-semibold text-sm sm:text-base transition-colors duration-150 cursor-pointer focus-visible:ring-4 focus-visible:ring-purple-400/60 focus-visible:outline-none">
+        Play Again
+      </button>
+      <button id="overlay-difficulty" class="px-6 py-2.5 rounded-lg bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 active:bg-gray-100 font-semibold text-sm sm:text-base transition-colors duration-150 cursor-pointer focus-visible:ring-4 focus-visible:ring-purple-400/40 focus-visible:outline-none">
+        Change Difficulty
+      </button>
+    </div>
+  </div>
+
+  <script src="./src/difficulty.js"></script>
   <script>
-    const SYMBOLS = ['🍎','🍇','🍊','🍋','🫐','🍑','🍒','🥝'];
+    const SYMBOL_POOL = ['🍎','🍇','🍊','🍋','🫐','🍑','🍒','🥝','🍉','🍓','🍌','🍍','🥥','🫒','🌽','🥕'];
+
+    const DIFFICULTY_CONFIG = {
+      easy:   { pairs: 4 },
+      normal: { pairs: 8 },
+      hard:   { pairs: 12 }
+    };
+    const DIFFICULTY_HINTS = {
+      easy:   '8 cards — match 4 pairs',
+      normal: '16 cards — match 8 pairs',
+      hard:   '24 cards — match 12 pairs'
+    };
+    const DIFFICULTY_LABELS = { easy: 'Easy', normal: 'Normal', hard: 'Hard' };
+
     const board = document.getElementById('board');
     const movesEl = document.getElementById('moves');
     const pairsEl = document.getElementById('pairs');
+    const totalPairsEl = document.getElementById('total-pairs');
+    const levelLabelEl = document.getElementById('level-label');
     const overlay = document.getElementById('overlay');
     const finalMovesEl = document.getElementById('final-moves');
+    const finalLevelEl = document.getElementById('final-level');
     const restartBtn = document.getElementById('restart');
+    const changeDifficultyBtn = document.getElementById('change-difficulty');
     const playAgainBtn = document.getElementById('play-again');
+    const overlayDifficultyBtn = document.getElementById('overlay-difficulty');
+
+    let currentDifficulty = 'normal';
+    let hasSessionStarted = false;
+    let difficultyScreen = null;
 
     let cards = [];
     let flipped = [];
@@ -61,9 +93,16 @@
       return arr;
     }
 
+    function pairCountFor(difficulty) {
+      const config = DIFFICULTY_CONFIG[GameDifficulty.normalize(difficulty)];
+      return config ? config.pairs : DIFFICULTY_CONFIG.normal.pairs;
+    }
+
     function createBoard() {
+      const pairs = pairCountFor(currentDifficulty);
+      const symbols = SYMBOL_POOL.slice(0, pairs);
       board.innerHTML = '';
-      const deck = shuffle([...SYMBOLS, ...SYMBOLS]);
+      const deck = shuffle([...symbols, ...symbols]);
       cards = deck;
       flipped = [];
       matched = new Set();
@@ -73,6 +112,7 @@
       generation++;
       movesEl.textContent = '0';
       pairsEl.textContent = '0';
+      totalPairsEl.textContent = pairs;
       overlay.classList.add('hidden');
 
       deck.forEach((symbol, index) => {
@@ -118,14 +158,17 @@
           matched.add(j);
           pairsFound++;
           pairsEl.textContent = pairsFound;
+          cardEl.classList.add('matched');
+          board.children[j].classList.add('matched');
           flipped = [];
           locked = false;
 
-          if (pairsFound === SYMBOLS.length) {
+          if (pairsFound === pairCountFor(currentDifficulty)) {
             const g = generation;
             setTimeout(() => {
               if (g !== generation) return;
               finalMovesEl.textContent = moves;
+              finalLevelEl.textContent = DIFFICULTY_LABELS[currentDifficulty];
               overlay.classList.remove('hidden');
             }, 400);
           }
@@ -142,10 +185,68 @@
       }
     }
 
-    restartBtn.addEventListener('click', createBoard);
-    playAgainBtn.addEventListener('click', createBoard);
+    function setDifficultyLabel() {
+      levelLabelEl.textContent = DIFFICULTY_LABELS[currentDifficulty];
+    }
 
-    createBoard();
+    function openDifficultyScreen() {
+      if (!difficultyScreen) {
+        const levels = GameDifficulty.levels.map(level => ({
+          id: level.id,
+          label: level.label,
+          tagline: level.tagline,
+          hint: DIFFICULTY_HINTS[level.id]
+        }));
+        difficultyScreen = GameDifficulty.createSelector({
+          root: document.body,
+          eyebrow: 'Memory Game',
+          title: 'Choose Your Difficulty',
+          intro: 'Select how challenging you want today\u2019s activity to be.',
+          levels,
+          initial: currentDifficulty,
+          onStart: startGameFromDifficulty,
+          onBack: function onDifficultyBack() {
+            if (hasSessionStarted) {
+              closeDifficultyScreen();
+            } else if (history.length > 1) {
+              history.back();
+            }
+          }
+        });
+      }
+      difficultyScreen.selectLevel(currentDifficulty);
+      difficultyScreen.show();
+    }
+
+    function closeDifficultyScreen() {
+      if (difficultyScreen) difficultyScreen.hide();
+    }
+
+    function isDifficultyScreenOpen() {
+      return !!difficultyScreen && difficultyScreen.isVisible();
+    }
+
+    function startGameFromDifficulty(diff) {
+      hasSessionStarted = true;
+      currentDifficulty = GameDifficulty.normalize(diff);
+      setDifficultyLabel();
+      closeDifficultyScreen();
+      createBoard();
+    }
+
+    restartBtn.addEventListener('click', () => {
+      if (isDifficultyScreenOpen()) return;
+      createBoard();
+    });
+    playAgainBtn.addEventListener('click', () => {
+      if (isDifficultyScreenOpen()) return;
+      createBoard();
+    });
+    changeDifficultyBtn.addEventListener('click', openDifficultyScreen);
+    overlayDifficultyBtn.addEventListener('click', openDifficultyScreen);
+
+    setDifficultyLabel();
+    openDifficultyScreen();
   </script>
 </body>
 </html>
