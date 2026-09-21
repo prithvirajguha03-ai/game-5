@@ -6,15 +6,15 @@
   <title>Memory Game</title>
   <link href="./src/output.css" rel="stylesheet">
 </head>
-<body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900">
+<body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 via-purple-100 to-slate-100">
 
   <div class="flex flex-col items-center gap-5 p-6 w-full max-w-xl mx-auto">
-    <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-wide">Memory Game</h1>
+    <h1 class="text-3xl sm:text-4xl font-bold text-slate-800 tracking-wide">Memory Game</h1>
 
-    <div class="flex items-center gap-6 text-white/80 text-sm sm:text-base">
-      <span>Moves: <strong id="moves" class="text-white">0</strong></span>
-      <span>Pairs: <strong id="pairs" class="text-white">0</strong>/<span id="total-pairs">8</span></span>
-      <span>Level: <strong id="level-label" class="text-white">Normal</strong></span>
+    <div class="flex items-center gap-6 text-slate-600/80 text-sm sm:text-base">
+      <span>Moves: <strong id="moves" class="text-slate-800">0</strong></span>
+      <span>Pairs: <strong id="pairs" class="text-slate-800">0</strong>/<span id="total-pairs">8</span></span>
+      <span>Level: <strong id="level-label" class="text-slate-800">Normal</strong></span>
     </div>
 
     <div id="board" class="grid grid-cols-4 gap-2.5 sm:gap-3 w-full">
@@ -24,7 +24,7 @@
       <button id="restart" class="px-6 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 active:bg-purple-700 text-white font-semibold text-sm sm:text-base transition-colors duration-150 cursor-pointer focus-visible:ring-4 focus-visible:ring-purple-400/60 focus-visible:outline-none">
         Restart
       </button>
-      <button id="change-difficulty" class="px-6 py-2.5 rounded-lg bg-white/10 hover:bg-white/20 active:bg-white/5 text-white font-semibold text-sm sm:text-base border border-white/20 transition-colors duration-150 cursor-pointer focus-visible:ring-4 focus-visible:ring-white/40 focus-visible:outline-none">
+      <button id="change-difficulty" class="px-6 py-2.5 rounded-lg bg-white/70 hover:bg-white active:bg-white/40 text-slate-700 font-semibold text-sm sm:text-base border border-slate-300 transition-colors duration-150 cursor-pointer focus-visible:ring-4 focus-visible:ring-indigo-300 focus-visible:outline-none">
         Change Difficulty
       </button>
     </div>
